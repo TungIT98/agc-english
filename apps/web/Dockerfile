@@ -1,29 +1,22 @@
-# Multi-stage build for Next.js on Fly.io
+# Build stage
 FROM node:20-slim AS builder
 WORKDIR /app
 
-# Install pnpm globally
-RUN npm install -g pnpm@9
+# Install just the web app deps (no pnpm workspace complexity)
+COPY apps/web/package.json ./
+RUN npm install --production=false && \
+    mv node_modules apps_web_node_modules
 
-# Copy root config + lockfile
-COPY package.json pnpm-lock.yaml ./
+# Copy source and build
+COPY apps/web/ ./
+RUN npm run build
 
-# Install all workspace dependencies (no filter — installs all apps)
-RUN pnpm install --frozen-lockfile --ignore-workspace
-
-# Copy the web app
-COPY apps/web .
-
-# Build (NODE_ENV must not be 'production' during build to get full deps)
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV NODE_ENV=development
-RUN pnpm build
-
-FROM node:20-slim AS runner
+# Production runtime
+FROM node:20-slim
 WORKDIR /app
 
-ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=8080
 
 RUN groupadd --system --gid 1001 nodejs && \
@@ -34,6 +27,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/.next/server ./.next/server
 COPY --from=builder --chown=nextjs:nodejs /app/.next/cache ./.next/cache
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/apps_web_node_modules ./node_modules
 
 USER nextjs
 EXPOSE 8080
