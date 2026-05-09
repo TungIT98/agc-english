@@ -1,6 +1,9 @@
 app = "agc-english-web"
 primary_region = "sin"
 
+[build]
+  dockerfile = "apps/web/Dockerfile"
+
 [[services]]
   protocol = "tcp"
   internal_port = 8080
