@@ -1,0 +1,16 @@
+{
+  "name": "agc-english",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "dev:api": "pnpm --filter api dev",
+    "db:migrate": "pnpm --filter db migrate",
+    "db:seed": "pnpm --filter db seed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "typescript": "^5.4.0"
+  }
+}

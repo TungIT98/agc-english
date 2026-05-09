@@ -1,0 +1,22 @@
+name = "agc-english-api"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ENVIRONMENT = "production"
+MINIMAX_API_URL = "https://api.minimax.io"
+# External integrations — configure via:
+#   wrangler secret put ZALO_API_KEY
+#   wrangler secret put CRM_API_KEY
+#   wrangler secret put NOTION_API_KEY
+# Optional: wrangler secret put CRM_API_URL (for non-default CRM endpoints)
+
+[[d1_databases]]
+binding = "DB"
+database_name = "agc-english-db"
+database_id = "26c159b4-c6f2-48c4-85a3-900df7992c42"
+
+[[kv_namespaces]]
+binding = "agc_english_cache"
+id = "4f04ea41f38e458ba012701003411080"

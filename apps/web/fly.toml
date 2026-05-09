@@ -1,0 +1,28 @@
+app = "agc-english-web"
+primary_region = "sin"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 8080
+
+  [services.concurrency]
+    hard_limit = 25
+    soft_limit = 20
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [[services.tcp_checks]]
+    interval = "10s"
+    timeout = "2s"
+    restart_limit = 0
+
+[env]
+  PORT = "8080"
+  NEXT_TELEMETRY_DISABLED = "1"

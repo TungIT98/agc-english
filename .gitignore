@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.pnpm/
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editor
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Testing
+test-results/
+playwright-report/
+coverage/
+
+# Wrangler/CF
+.wrangler/
+.webpack/
+
+# Misc
+*.tgz
+.cache/*.tsbuildinfo
+.dev.vars
