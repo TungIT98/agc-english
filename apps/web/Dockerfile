@@ -2,15 +2,22 @@
 FROM node:20-slim AS builder
 WORKDIR /app
 
-# Install deps in /app using apps/web/package.json
+# Install deps first
 COPY apps/web/package.json ./
 RUN npm install
 
-# Copy source and build
-COPY apps/web/ ./
+# Copy source to a separate location within /app
+COPY apps/web/src ./src
+COPY apps/web/public ./public
+COPY apps/web/next.config.mjs ./
+COPY apps/web/tsconfig.json ./
+COPY apps/web/tailwind.config.ts ./
+COPY apps/web/postcss.config.js ./
+COPY apps/web/next-env.d.ts ./
+
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN npx next build
 
-# Production runtime
 FROM node:20-slim
 WORKDIR /app
 
