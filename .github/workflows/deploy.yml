@@ -41,16 +41,16 @@ jobs:
 
       - name: Build web app
         run: pnpm --filter agc-english-web build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ vars.FLY_WEB_API_URL || 'https://api.agc-english.workers.dev' }}
 
-      - name: Deploy to Fly.io
+      - name: Setup Fly.io
         uses: superfly/fly-actions/setup-fly@v1
         with:
           api-token: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Deploy to Fly.io
         run: fly deploy --config apps/web/fly.toml --app agc-english-web
-        env:
-          NEXT_PUBLIC_API_URL: ${{ vars.FLY_WEB_API_URL || 'https://api.agc-english.workers.dev' }}
 
   deploy-api:
     name: Deploy API to Cloudflare Workers
@@ -75,12 +75,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Deploy API to Cloudflare Workers
+      - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
-          api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          packageManager: pnpm
-          workspace: apps/api
-          commands: |
-            wrangler deploy --config wrangler.toml
+          workingDirectory: apps/api
+          command: deploy --config wrangler.toml
