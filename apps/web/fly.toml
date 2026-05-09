@@ -2,8 +2,7 @@ app = "agc-english-web"
 primary_region = "sin"
 
 [build]
-  dockerfile = "Dockerfile"
-  builder = "docker"
+  builder = "nixpacks"
 
 [[services]]
   protocol = "tcp"
