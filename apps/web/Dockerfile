@@ -5,14 +5,11 @@ WORKDIR /app
 # Install pnpm globally
 RUN npm install -g pnpm@9
 
-# Copy root workspace config
+# Copy root workspace config (packages may not exist in all clones)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Copy web app package
 COPY apps/web/package.json apps/web/
-
-# Copy packages if present
-COPY packages ./packages 2>/dev/null || true
 
 # Install all dependencies
 RUN pnpm install --frozen-lockfile
