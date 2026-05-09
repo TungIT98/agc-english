@@ -11,9 +11,6 @@ COPY apps/web/package.json apps/web/
 # Copy root config for workspace resolution
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# Copy packages dir if present
-COPY packages ./packages 2>/dev/null || true
-
 # Install dependencies (filter to web app only to avoid workspace issues)
 RUN pnpm install --frozen-lockfile --filter agc-english-web
 
