@@ -2,7 +2,7 @@ app = "agc-english-web"
 primary_region = "sin"
 
 [build]
-  dockerfile = "apps/web/Dockerfile"
+  dockerfile = "Dockerfile"
 
 [[services]]
   protocol = "tcp"
