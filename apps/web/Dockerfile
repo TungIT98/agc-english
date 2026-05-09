@@ -5,17 +5,16 @@ WORKDIR /app
 # Install pnpm globally
 RUN npm install -g pnpm@9
 
-# Copy root workspace config (packages may not exist in all clones)
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Copy root config + lockfile
+COPY package.json pnpm-lock.yaml ./
 
-# Copy web app package
-COPY apps/web/package.json apps/web/
+# Install all workspace dependencies (no filter — installs all apps)
+RUN pnpm install --frozen-lockfile --ignore-workspace
 
-# Install all dependencies
-RUN pnpm install --frozen-lockfile
-
-# Copy and build the web app
+# Copy the web app
 COPY apps/web .
+
+# Build (NODE_ENV must not be 'production' during build to get full deps)
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=development
 RUN pnpm build
