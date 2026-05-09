@@ -265,4 +265,138 @@ router.post("/channels", async (c) => {
   return c.json({ channel: record }, 201);
 });
 
+// POST /api/youtube/affiliate/click — log an affiliate link click
+router.post("/affiliate/click", async (c) => {
+  const kv = c.env.agc_english_cache as KVNamespace;
+  const { agentId, videoUrl, linkUrl, affiliateProgram, merchant } = await c.req.json<{
+    agentId?: string;
+    videoUrl: string;
+    linkUrl: string;
+    affiliateProgram?: string;
+    merchant?: string;
+  }>();
+
+  if (!linkUrl) {
+    return c.json({ error: "linkUrl is required" }, 400);
+  }
+
+  const id = crypto.randomUUID();
+  const clickedAt = new Date().toISOString();
+
+  const click: {
+    id: string;
+    agentId: string | null;
+    videoUrl: string;
+    linkUrl: string;
+    affiliateProgram: string | null;
+    merchant: string | null;
+    clickedAt: string;
+  } = {
+    id,
+    agentId: agentId ?? null,
+    videoUrl: videoUrl ?? "",
+    linkUrl,
+    affiliateProgram: affiliateProgram ?? null,
+    merchant: merchant ?? null,
+    clickedAt,
+  };
+
+  await kv.put(`click:${id}`, JSON.stringify(click));
+
+  // Update daily aggregate
+  const today = clickedAt.slice(0, 10); // YYYY-MM-DD
+  const existingDaily = await kv.get(`daily_clicks:${today}`);
+  const daily = existingDaily ? (JSON.parse(existingDaily) as Record<string, number>) : {};
+  daily.total = (daily.total ?? 0) + 1;
+  const progKey = affiliateProgram ?? "_unknown";
+  const merchantKey = merchant ?? "_none";
+  daily[`prog:${progKey}`] = (daily[`prog:${progKey}`] ?? 0) + 1;
+  daily[`merchant:${merchantKey}`] = (daily[`merchant:${merchantKey}`] ?? 0) + 1;
+  await kv.put(`daily_clicks:${today}`, JSON.stringify(daily));
+
+  return c.json({ id, clickedAt }, 201);
+});
+
+// GET /api/youtube/affiliate/clicks — list affiliate clicks
+router.get("/affiliate/clicks", async (c) => {
+  const kv = c.env.agc_english_cache as KVNamespace;
+  const agentId = c.req.query("agentId") ?? undefined;
+  const program = c.req.query("program") ?? undefined;
+  const limit = Math.min(parseInt(c.req.query("limit") ?? "50", 10), 200);
+  const offset = parseInt(c.req.query("offset") ?? "0", 10);
+
+  const all = await kv.list({ prefix: "click:", limit: 1000 });
+  let clicks = (await Promise.all(
+    all.keys.map(async (k) => {
+      const raw = await kv.get(k.name);
+      return raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
+    })
+  )).filter((c): c is Record<string, unknown> => c !== null);
+
+  // Filter
+  if (agentId) clicks = clicks.filter((c) => c.agentId === agentId);
+  if (program) clicks = clicks.filter((c) => c.affiliateProgram === program);
+
+  // Sort by clickedAt desc
+  clicks.sort((a, b) => (b.clickedAt as string).localeCompare(a.clickedAt as string));
+
+  const count = clicks.length;
+  const page = clicks.slice(offset, offset + limit);
+
+  return c.json({ clicks: page, count, limit, offset });
+});
+
+// GET /api/youtube/affiliate/stats — aggregate affiliate stats
+router.get("/affiliate/stats", async (c) => {
+  const kv = c.env.agc_english_cache as KVNamespace;
+
+  const all = await kv.list({ prefix: "click:", limit: 1000 });
+  const clicks = await Promise.all(
+    all.keys.map(async (k) => {
+      const raw = await kv.get(k.name);
+      return raw ? (JSON.parse(raw) as Record<string, unknown>) : null;
+    })
+  );
+  const valid = (clicks.filter(Boolean) as Record<string, unknown>[]);
+
+  // totalClicks
+  const totalClicks = valid.length;
+
+  // byProgram
+  const byProgramMap: Record<string, number> = {};
+  for (const c of valid) {
+    const prog = (c.affiliateProgram as string | null) ?? "_unknown";
+    byProgramMap[prog] = (byProgramMap[prog] ?? 0) + 1;
+  }
+  const byProgram = Object.entries(byProgramMap)
+    .map(([affiliate_program, click_count]) => ({ affiliate_program, click_count }))
+    .sort((a, b) => b.click_count - a.click_count);
+
+  // byVideo (top 10)
+  const byVideoMap: Record<string, number> = {};
+  for (const c of valid) {
+    const url = (c.videoUrl as string) || "_none";
+    byVideoMap[url] = (byVideoMap[url] ?? 0) + 1;
+  }
+  const byVideo = Object.entries(byVideoMap)
+    .map(([video_url, click_count]) => ({ video_url, click_count }))
+    .sort((a, b) => b.click_count - a.click_count)
+    .slice(0, 10);
+
+  // daily for current month
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0-indexed
+  const daily: { day: string; clicks: number }[] = [];
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dayStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    const raw = await kv.get(`daily_clicks:${dayStr}`);
+    const record = raw ? (JSON.parse(raw) as Record<string, number>) : null;
+    daily.push({ day: dayStr, clicks: record?.total ?? 0 });
+  }
+
+  return c.json({ totalClicks, byProgram, byVideo, daily });
+});
+
 export const youtubeRouter = router;

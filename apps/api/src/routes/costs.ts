@@ -149,6 +149,49 @@ router.post("/transfer", async (c) => {
   }
 });
 
+router.get("/trend", async (c) => {
+  const companyId = c.req.query("companyId") || "agc-english";
+  const days = Math.min(parseInt(c.req.query("days") || "7"), 30);
+  const db = c.env.DB as D1Database;
+
+  try {
+    const result = await db
+      .prepare(
+        `SELECT
+           DATE(ce.created_at) as day,
+           COALESCE(SUM(ce.cost_cents), 0) as cost_cents
+         FROM cost_events ce
+         JOIN agents a ON ce.agent_id = a.id
+         WHERE a.company_id = ?
+           AND ce.created_at >= datetime('now', '-' || ? || ' days')
+         GROUP BY DATE(ce.created_at)
+         ORDER BY day ASC`
+      )
+      .bind(companyId, String(days))
+      .all();
+
+    const byDay: Record<string, number> = {};
+    for (const row of result.results) {
+      const r = row as { day: string; cost_cents: number };
+      byDay[r.day] = r.cost_cents;
+    }
+
+    // Fill in all days in the range (zero-fill missing days)
+    const trend: { day: string; spend: number }[] = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().split("T")[0];
+      const label = d.toLocaleDateString("en-US", { weekday: "short" });
+      trend.push({ day: label, spend: (byDay[key] ?? 0) / 100 });
+    }
+
+    return c.json({ trend });
+  } catch {
+    return c.json({ trend: [] });
+  }
+});
+
 router.get("/forecast", async (c) => {
   const companyId = c.req.query("companyId") || "agc-english";
   const db = c.env.DB as D1Database;

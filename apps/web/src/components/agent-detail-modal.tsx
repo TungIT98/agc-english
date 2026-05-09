@@ -32,7 +32,7 @@ export function AgentDetailModal({ agent, onClose }: AgentDetailModalProps) {
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <div className="text-text-secondary mb-1">Budget</div>
-            <div className="font-medium">${(agent.budgetMonthlyCents / 100).toFixed(2)}/mo</div>
+            <div className="font-medium">${(agent.budgetMonthlyCents / 100).toFixed(2)} dollars/month</div>
           </div>
           <div>
             <div className="text-text-secondary mb-1">Spent</div>

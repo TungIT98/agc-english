@@ -165,6 +165,18 @@ export async function fetchForecast(): Promise<{
   return res.json();
 }
 
+export interface TrendPoint {
+  day: string;
+  spend: number;
+}
+
+export async function fetchTrend(days = 7): Promise<TrendPoint[]> {
+  const res = await fetch(`${API_BASE}/api/costs/trend?days=${days}`);
+  if (!res.ok) throw new Error("Failed to fetch trend");
+  const data = await res.json();
+  return data.trend ?? [];
+}
+
 export async function topUpBudget(agentId: string, amountCents: number): Promise<void> {
   await fetch(`${API_BASE}/api/costs/top-up`, {
     method: "POST",

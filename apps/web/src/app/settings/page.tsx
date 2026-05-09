@@ -68,7 +68,7 @@ export default function SettingsPage() {
               <div>
                 <label className="text-sm text-text-secondary mb-1 block">Monthly Budget</label>
                 <div className="text-lg font-bold" style={{ color: "var(--primary)" }}>
-                  ${((data.company?.budgetMonthlyCents ?? 0) / 100).toFixed(2)}/month
+                  ${((data.company?.budgetMonthlyCents ?? 0) / 100).toFixed(2)} dollars/month
                 </div>
               </div>
             </CardContent>

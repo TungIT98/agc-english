@@ -155,7 +155,7 @@ export default function AdminPage() {
                                 <span className={budgetPct > 80 ? "text-accent-rose" : "text-text-primary"}>
                                   {agent.spentMonthlyCents / 100}
                                 </span>
-                                <span className="text-text-muted"> / {agent.budgetMonthlyCents / 100}</span>
+                                <span className="text-text-muted"> of ${(agent.budgetMonthlyCents / 100).toFixed(2)}/month</span>
                               </div>
                             </td>
                             <td className="py-3 pr-4 text-text-secondary">{agent.totalEvents}</td>

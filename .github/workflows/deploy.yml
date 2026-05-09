@@ -1,4 +1,4 @@
-name: Deploy Frontend to Fly.io
+name: Deploy
 
 on:
   push:

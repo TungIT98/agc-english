@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { fetchCosts, CostSummary, fetchAgents, Agent, fetchForecast, topUpBudget, transferBudget, fetchAlerts, Alert } from "@/lib/api";
-import { AreaChart, BarChart, PieChart, Pie, Bar, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line } from "recharts";
+import { fetchCosts, CostSummary, fetchAgents, Agent, fetchForecast, topUpBudget, transferBudget, fetchAlerts, Alert, fetchTrend } from "@/lib/api";
+import { AreaChart, BarChart, PieChart, Pie, Bar, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ export default function CostsPage() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [forecast, setForecast] = useState<Forecast | null>(null);
   const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [trend, setTrend] = useState<{ day: string; spend: number }[]>([]);
   const [topUpAgentId, setTopUpAgentId] = useState("");
   const [topUpAmount, setTopUpAmount] = useState("");
   const [fromAgent, setFromAgent] = useState("");
@@ -35,6 +36,7 @@ export default function CostsPage() {
     Promise.all([fetchCosts(), fetchAgents()]).then(([c, a]) => { setCosts(c); setAgents(a); });
     fetchForecast().then(setForecast).catch(() => {});
     fetchAlerts().then((r) => setAlerts(r.alerts)).catch(() => {});
+    fetchTrend(7).then(setTrend).catch(() => {});
   }, []);
 
   if (!costs) return <div>Loading...</div>;
@@ -58,6 +60,14 @@ export default function CostsPage() {
     setTransferError("");
     if (!fromAgent || !toAgent || !transferAmount) return;
     const amountCents = Number(transferAmount);
+    if (amountCents <= 0) {
+      setTransferError("Transfer amount must be greater than zero.");
+      return;
+    }
+    if (fromAgent === toAgent) {
+      setTransferError("Source and destination agents must be different.");
+      return;
+    }
     const from = agents.find((a) => a.id === fromAgent);
     const available = from ? from.budgetMonthlyCents - from.spentMonthlyCents : 0;
     if (!from || available < amountCents) {
@@ -288,7 +298,7 @@ export default function CostsPage() {
             <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp size={16} style={{ color: "var(--accent-cyan)" }} />7-Day Cost Trend</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={180}>
-                <AreaChart data={generateTrendData(costs.totalSpentCents)}>
+                <AreaChart data={trend.length > 0 ? trend : [{ day: "Mon", spend: 0 }]}>
                   <XAxis dataKey="day" tick={{ fill: "var(--text-secondary)", fontSize: 11 }} />
                   <YAxis tick={{ fill: "var(--text-secondary)", fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
                   <Tooltip
@@ -303,14 +313,4 @@ export default function CostsPage() {
         </div>
       </div>
   );
-}
-
-function generateTrendData(totalSpent: number) {
-  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  let remaining = totalSpent;
-  return [...Array(7)].map((_, i) => {
-    const spend = Math.round((remaining / Math.max(1, 7 - i)) * (0.5 + Math.random()));
-    remaining -= spend;
-    return { day: days[i], spend: Math.max(0, spend / 100) };
-  }).reverse();
 }
