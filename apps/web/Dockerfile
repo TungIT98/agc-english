@@ -5,19 +5,22 @@ WORKDIR /app
 # Install pnpm globally
 RUN npm install -g pnpm@9
 
-# Copy web app files needed for build
-COPY apps/web/package.json apps/web/
-
-# Copy root config for workspace resolution
+# Copy root workspace config
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# Install dependencies (filter to web app only to avoid workspace issues)
-RUN pnpm install --frozen-lockfile --filter agc-english-web
+# Copy web app package
+COPY apps/web/package.json apps/web/
+
+# Copy packages if present
+COPY packages ./packages 2>/dev/null || true
+
+# Install all dependencies
+RUN pnpm install --frozen-lockfile
 
 # Copy and build the web app
 COPY apps/web .
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV NODE_ENV=production
+ENV NODE_ENV=development
 RUN pnpm build
 
 FROM node:20-slim AS runner
